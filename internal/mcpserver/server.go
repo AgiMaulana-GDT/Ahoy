@@ -11,7 +11,11 @@ import (
 	"github.com/AgiMaulana/Ahoy/internal/gateway"
 )
 
-const instructions = `This server is Ahoy. You do not have direct access to third-party MCP servers.
+const instructions = `This server is Ahoy, an MCP gateway. Its two tools — discover and invoke —
+are the ONLY access to every MCP server configured behind it. If you do not see
+familiar third-party MCP tool names in your tool list, that is expected: they
+exist behind Ahoy, not as direct tools for you. Do not conclude that no MCP
+servers are connected — call discover() first and check.
 
 To use an external service:
 1. discover()                          -> list connected servers (names only).
@@ -33,7 +37,7 @@ func New(gw *gateway.Gateway) *server.MCPServer {
 
 	s.AddTool(
 		mcp.NewTool("discover",
-			mcp.WithDescription("Discover MCP capabilities. No argument lists connected servers; a server name lists its tools; \"server.tool\" returns one tool's input schema; any other text searches tool names and descriptions."),
+			mcp.WithDescription("Ahoy gateway discovery: lists the MCP servers connected behind this gateway and their tools — every external MCP capability is reachable only through here. No argument lists connected servers; a server name lists its tools; \"server.tool\" returns one tool's input schema; any other text searches tool names and descriptions. Call this before assuming no MCP servers are available."),
 			mcp.WithString("query",
 				mcp.Description("Server name, \"server.tool\" reference, or free text to search. Omit to list servers."),
 			),
@@ -45,7 +49,7 @@ func New(gw *gateway.Gateway) *server.MCPServer {
 
 	s.AddTool(
 		mcp.NewTool("invoke",
-			mcp.WithDescription("Invoke a tool on a connected MCP server through Ahoy."),
+			mcp.WithDescription("Execute a tool on an MCP server connected behind the Ahoy gateway — the only execution surface for downstream MCP tools."),
 			mcp.WithString("server",
 				mcp.Required(),
 				mcp.Description("Name of the target MCP server, as shown by discover."),
