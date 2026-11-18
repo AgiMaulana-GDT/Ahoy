@@ -8,6 +8,7 @@
 
 # Agent/tooling state
 /.commandcode/
+/.zcode/
 
 # Scratch notes
 /me: I hate when the MCP server tools lis.md

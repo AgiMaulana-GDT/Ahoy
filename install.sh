@@ -12,7 +12,7 @@
 # (or ~/.local/bin if /usr/local/bin is not writable, or via AHOY_INSTALL_DIR).
 set -eu
 
-REPO="AgiMaulana/Ahoy"
+REPO="${AHOY_REPO:-AgiMaulana/Ahoy}"
 APP="ahoy"
 
 if [ -w "/usr/local/bin" ]; then
@@ -118,7 +118,7 @@ if [ ! -d "$install_dir" ]; then
   mkdir -p "$install_dir" 2>/dev/null || true
 fi
 
-if [ ! -w "$install_dir" ]; then
+if [ ! -w "$install_dir" ] || { [ -e "${install_dir}/${APP}${ext}" ] && [ ! -w "${install_dir}/${APP}${ext}" ]; }; then
   if command -v sudo >/dev/null 2>&1; then
     log "Need permission to write to ${install_dir}, attempting sudo..."
     sudo mkdir -p "$install_dir" || fail "cannot create ${install_dir} with sudo"
