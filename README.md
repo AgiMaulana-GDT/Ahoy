@@ -170,8 +170,9 @@ curl -fsSL https://raw.githubusercontent.com/AgiMaulana/Ahoy/main/install.sh | s
 
 The installer downloads the release binary for your platform, verifies its
 [cosign](https://github.com/sigstore/cosign) keyless signature (when `cosign` is
-on `PATH`), and installs `ahoy` to `/usr/local/bin`. Pin a version or choose a
-different directory:
+on `PATH`), and installs `ahoy` to `/usr/local/bin` (or `$HOME/.local/bin` if
+`/usr/local/bin` is not writable, avoiding the need for `sudo`). Pin a version or
+choose a different directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/AgiMaulana/Ahoy/main/install.sh | sh -s -- v0.1.0

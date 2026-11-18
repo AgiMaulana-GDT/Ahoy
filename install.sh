@@ -9,12 +9,17 @@
 #
 # Downloads the latest (or requested) Ahoy release binary for your platform,
 # verifies its cosign keyless signature, and installs it to /usr/local/bin
-# (or a directory of your choice via AHOY_INSTALL_DIR).
+# (or ~/.local/bin if /usr/local/bin is not writable, or via AHOY_INSTALL_DIR).
 set -eu
 
 REPO="AgiMaulana/Ahoy"
 APP="ahoy"
-DEFAULT_INSTALL_DIR="/usr/local/bin"
+
+if [ -w "/usr/local/bin" ]; then
+  DEFAULT_INSTALL_DIR="/usr/local/bin"
+else
+  DEFAULT_INSTALL_DIR="${HOME}/.local/bin"
+fi
 
 log() { printf '%s\n' "$*" >&2; }
 fail() { log "Error: $*"; exit 1; }
@@ -114,11 +119,10 @@ if [ ! -d "$install_dir" ]; then
 fi
 
 if [ ! -w "$install_dir" ]; then
-  # Try sudo -p prints the prompt; -v validates cached credentials first.
-  if command -v sudo >/dev/null 2>&1 && sudo -v 2>/dev/null; then
-    log "Need permission to write to ${install_dir}, using sudo..."
-    sudo mkdir -p "$install_dir"
-    sudo install -m 0755 "${tmp_dir}/${asset}" "${install_dir}/${APP}${ext}"
+  if command -v sudo >/dev/null 2>&1; then
+    log "Need permission to write to ${install_dir}, attempting sudo..."
+    sudo mkdir -p "$install_dir" || fail "cannot create ${install_dir} with sudo"
+    sudo install -m 0755 "${tmp_dir}/${asset}" "${install_dir}/${APP}${ext}" || fail "cannot install to ${install_dir} with sudo"
   else
     fail "cannot write to ${install_dir}. Re-run with: AHOY_INSTALL_DIR=\$HOME/.local/bin sh install.sh"
   fi
