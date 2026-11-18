@@ -179,6 +179,32 @@ curl -fsSL https://raw.githubusercontent.com/AgiMaulana/Ahoy/main/install.sh | s
 AHOY_INSTALL_DIR="$HOME/.local/bin" sh install.sh
 ```
 
+## Update
+
+Update `ahoy` to the latest release:
+
+```sh
+ahoy update
+```
+
+Check for available updates without installing:
+
+```sh
+ahoy update -check
+```
+
+Or update/downgrade to a specific version:
+
+```sh
+ahoy update v0.0.5
+```
+
+Force reinstallation even if already on the latest version:
+
+```sh
+ahoy update -force
+```
+
 ## Build & run
 
 ```sh

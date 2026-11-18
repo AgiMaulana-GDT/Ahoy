@@ -31,9 +31,10 @@ Usage:
   ahoy login <name> [-config path]         authenticate an OAuth server
   ahoy list [-config path]                 list configured servers
   ahoy remove <name> [-config path]        remove a server
+  ahoy update [flags] [version]            update ahoy to the latest version
   ahoy version                             print the version
 
-Use "ahoy add -h", "ahoy login -h", "ahoy list -h" or "ahoy remove -h" for command flags.`
+Use "ahoy add -h", "ahoy login -h", "ahoy list -h", "ahoy remove -h" or "ahoy update -h" for command flags.`
 
 func main() {
 	log.SetOutput(os.Stderr) // stdout is reserved for the MCP stdio channel.
@@ -62,6 +63,9 @@ func main() {
 			return
 		case "remove", "rm":
 			remove(args[1:])
+			return
+		case "update", "upgrade":
+			update(args[1:])
 			return
 		}
 		// An unknown bare word is a typo; a leading "-" is the serve flags.
