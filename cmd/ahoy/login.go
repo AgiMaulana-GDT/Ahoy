@@ -254,8 +254,6 @@ func registerClient(ctx context.Context, handler *transport.OAuthHandler, cfg tr
 
 // waitForCallback serves a single OAuth redirect on ln and returns the code.
 func waitForCallback(ctx context.Context, ln net.Listener, state string) (string, error) {
-	defer ln.Close()
-
 	type result struct {
 		code string
 		err  error
@@ -263,6 +261,9 @@ func waitForCallback(ctx context.Context, ln net.Listener, state string) (string
 	results := make(chan result, 1)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if e := q.Get("error"); e != "" {
@@ -282,24 +283,141 @@ func waitForCallback(ctx context.Context, ln net.Listener, state string) (string
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Connection", "close")
 		fmt.Fprint(w, callbackPage)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
 		results <- result{code: code}
 	})
 
 	srv := &http.Server{Handler: mux}
 	go func() { _ = srv.Serve(ln) }()
-	defer srv.Close()
 
+	var res result
 	select {
 	case <-ctx.Done():
+		_ = srv.Close()
+		_ = ln.Close()
 		return "", fmt.Errorf("timed out waiting for the browser: %w", ctx.Err())
-	case res := <-results:
-		return res.code, res.err
+	case res = <-results:
 	}
+
+	// Shut down gracefully so the HTTP response is fully flushed to the browser.
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer shutdownCancel()
+	_ = srv.Shutdown(shutdownCtx)
+
+	return res.code, res.err
 }
 
-const callbackPage = `<!doctype html><title>Ahoy</title>
-<h1>Authorized</h1><p>You can close this tab and return to the terminal.</p>`
+const callbackPage = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ahoy &bull; Authorization Successful</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --success: #3fb950;
+      --btn-bg: #21262d;
+      --btn-border: #363b42;
+      --btn-hover: #30363d;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f8fa;
+        --card-bg: #ffffff;
+        --border: #d0d7de;
+        --text: #24292f;
+        --text-muted: #57606a;
+        --success: #1a7f37;
+        --btn-bg: #f3f4f6;
+        --btn-border: #d0d7de;
+        --btn-hover: #e5e7eb;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+    .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1.25rem;
+      color: var(--success);
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    p {
+      margin: 0 0 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .btn {
+      display: inline-block;
+      cursor: pointer;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .btn:hover {
+      background: var(--btn-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+    <h1>Authorization Successful</h1>
+    <p>You can close this tab and return to your terminal.</p>
+    <button class="btn" onclick="window.close()">Close Tab</button>
+  </div>
+  <script>
+    // Best-effort auto-close (allowed in some environments, though modern desktop browsers require manual close)
+    window.onload = function() {
+      window.open('', '_self', '');
+      window.close();
+    };
+  </script>
+</body>
+</html>`
 
 // openBrowser best-effort launches the system browser at url.
 func openBrowser(url string) error {
