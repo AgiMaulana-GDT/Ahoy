@@ -8,18 +8,13 @@
 #   curl -fsSL https://raw.githubusercontent.com/AgiMaulana/Ahoy/main/install.sh | sh -s -- v0.0.1
 #
 # Downloads the latest (or requested) Ahoy release binary for your platform,
-# verifies its cosign keyless signature, and installs it to /usr/local/bin
-# (or ~/.local/bin if /usr/local/bin is not writable, or via AHOY_INSTALL_DIR).
+# verifies its cosign keyless signature, and installs it to ~/.local/bin
+# (or a directory of your choice via AHOY_INSTALL_DIR).
 set -eu
 
 REPO="${AHOY_REPO:-AgiMaulana/Ahoy}"
 APP="ahoy"
-
-if [ -w "/usr/local/bin" ]; then
-  DEFAULT_INSTALL_DIR="/usr/local/bin"
-else
-  DEFAULT_INSTALL_DIR="${HOME}/.local/bin"
-fi
+DEFAULT_INSTALL_DIR="${HOME}/.local/bin"
 
 log() { printf '%s\n' "$*" >&2; }
 fail() { log "Error: $*"; exit 1; }
